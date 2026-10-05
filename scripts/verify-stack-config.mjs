@@ -30,7 +30,7 @@ assert.equal(process.env.GITHUB_ACTIONS, 'true', 'Runtime label proof runs only 
 const docker = (...args) => execFileSync('docker', args, { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
 assert.equal(docker('info', '--format', '{{.Swarm.LocalNodeState}}'), 'inactive', 'Do not alter an existing Swarm')
 const override = join(mkdtempSync(join(tmpdir(), 'opengym-label-proof-')), 'override.yml')
-writeFileSync(override, "version: '3.8'\nservices:\n  api:\n    deploy:\n      replicas: 0\n  web:\n    deploy:\n      replicas: 0\nnetworks:\n  matriz:\n    name: opengym-ci-label-matriz\n")
+writeFileSync(override, "version: '3.8'\nservices:\n  api:\n    deploy:\n      replicas: 0\n  web:\n    deploy:\n      replicas: 0\nnetworks:\n  matriz:\n    external: true\n    name: opengym-ci-label-matriz\n")
 docker('swarm', 'init', '--advertise-addr', '127.0.0.1')
 try {
   docker('network', 'create', '--driver', 'overlay', 'opengym-ci-label-matriz')
