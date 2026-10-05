@@ -32,6 +32,20 @@ const hasData = st => !!((st.workouts || []).length || (st.routines || []).lengt
 export const useStore = create((set, get) => {
   let pushTm = null
   let saveTm = null
+  let epoch = 0
+  let syncing = false
+  let owner = (() => { try { return JSON.parse(localStorage.getItem('gym_user'))?.id || 'guest' } catch { return 'guest' } })()
+  const cacheKey = id => `gym_profile_${id}`
+  let cached
+  try { cached = JSON.parse(localStorage.getItem(cacheKey(owner))) } catch { /* legacy cache */ }
+  let dirty = cached?.dirty ?? localStorage.getItem('gym_dirty') === '1'
+  let revision = cached?.revision ?? null
+  const cache = S => {
+    localStorage.setItem(cacheKey(owner), JSON.stringify({ state: S, dirty, revision }))
+    localStorage.setItem(KEY, JSON.stringify(S))
+    if (dirty) localStorage.setItem('gym_dirty', '1'); else localStorage.removeItem('gym_dirty')
+  }
+  const current = (id, started) => owner === id && epoch === started
 
   // Mobile build: mirror the state into a file in the app's data directory (survives WebView
   // storage eviction) and keep the native reminder schedule in step with the weekly plan.
@@ -40,15 +54,16 @@ export const useStore = create((set, get) => {
     saveTm = setTimeout(() => { saveTm = null; nativeSave(get().S); syncReminder(get().S) }, 800)
   }
 
-  const persist = (S, push = true) => {
-    S._ts = Date.now()
+  const persist = (S, push = true, changed = true) => {
+    if (changed) { S._ts = Date.now(); dirty = true }
     registerCustom(S.customEx)
-    localStorage.setItem(KEY, JSON.stringify(S))
+    cache(S)
     set({ S })
     if (MOBILE) nativePersist()
     if (push && get().user) {
       clearTimeout(pushTm)
-      pushTm = setTimeout(() => get().pushState(), 1500)
+      const id = owner, started = epoch
+      pushTm = setTimeout(() => { pushTm = null; if (current(id, started)) get().pushState() }, 1500)
     }
   }
 
@@ -57,6 +72,7 @@ export const useStore = create((set, get) => {
   // same applies to the file mirror — backgrounding is often the last thing before the OS
   // kills the app.
   document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') { if (get().user) get().pullState(); return }
     if (document.visibilityState !== 'hidden') return
     if (MOBILE && saveTm) {
       clearTimeout(saveTm)
@@ -74,15 +90,14 @@ export const useStore = create((set, get) => {
   const clearLocalSession = () => {
     get().setUser(null)
     localStorage.removeItem('gym_guest')
-    localStorage.removeItem('gym_dirty')
-    localStorage.removeItem(KEY)
-    persist(clone(DEF), false)
   }
+  window.addEventListener('online', () => { if (get().user) get().pullState() })
 
   return {
-    S: (() => { const s = loadState(); registerCustom(s.customEx); return s })(),
+    S: (() => { const s = cached?.state ? Object.assign(clone(DEF), cached.state) : loadState(); registerCustom(s.customEx); return s })(),
     user: (() => { try { return JSON.parse(localStorage.getItem('gym_user')) || null } catch { return null } })(),
     ready: false,
+    syncError: null,
 
     // Mutate a draft of S via producer fn, then persist + schedule sync.
     update(mut, push = true) {
@@ -95,35 +110,102 @@ export const useStore = create((set, get) => {
     isGuest: () => localStorage.getItem('gym_guest') === '1',
     setGuest(v) { if (v) localStorage.setItem('gym_guest', '1'); else localStorage.removeItem('gym_guest'); set({}) },
 
-    setUser(u) {
+    setUser(u, { migrateGuest = false } = {}) {
+      const nextOwner = u?.id || 'guest'
+      if (nextOwner !== owner) {
+        const guest = owner === 'guest' && migrateGuest ? clone(get().S) : null
+        cache(get().S) // preserves the only offline copy under its actual owner
+        clearTimeout(pushTm); pushTm = null
+        clearTimeout(saveTm); saveTm = null
+        epoch++; syncing = false; owner = nextOwner
+        let saved
+        try { saved = JSON.parse(localStorage.getItem(cacheKey(owner))) } catch { /* empty profile */ }
+        dirty = guest ? true : !!saved?.dirty
+        revision = guest ? 0 : saved?.revision ?? null
+        const S = Object.assign(clone(DEF), guest || saved?.state || {})
+        registerCustom(S.customEx); cache(S)
+        set({ S, syncError: null })
+      }
       if (u) { localStorage.setItem('gym_user', JSON.stringify(u)); localStorage.removeItem('gym_guest') }
       else localStorage.removeItem('gym_user')
       set({ user: u })
     },
 
     async pushState() {
-      if (!get().user) return
-      clearTimeout(pushTm)
-      try { await api('/api/data', { method: 'PUT', body: JSON.stringify({ state: get().S }) }); localStorage.removeItem('gym_dirty') }
-      catch (e) { localStorage.setItem('gym_dirty', '1') }
+      if (!get().user || !dirty || syncing) return
+      clearTimeout(pushTm); pushTm = null
+      const id = owner, started = epoch
+      if (revision === null) { await get().pullState(); return }
+      const S = get().S
+      syncing = true
+      try {
+        const result = await api('/api/data', { method: 'PUT', body: JSON.stringify({ state: S, baseRevision: revision, ownerId: id }) })
+        if (!current(id, started)) return
+        revision = result.revision
+        if (get().S === S) dirty = false
+        cache(get().S); set({ syncError: null })
+      } catch (e) {
+        if (!current(id, started)) return
+        cache(get().S)
+        set({ syncError: e.status === 409 ? 'conflict' : 'offline' })
+        if (e.status === 401) get().setUser(null)
+      } finally {
+        if (current(id, started)) {
+          syncing = false
+          if (dirty && get().S !== S && !get().syncError) {
+            clearTimeout(pushTm)
+            pushTm = setTimeout(() => { pushTm = null; if (current(id, started)) get().pushState() }, 1500)
+          }
+        }
+      }
+    },
+    // Called only after the user has explicitly chosen to discard the pending local copy.
+    async restoreServerState() {
+      if (!get().user || syncing) return
+      const id = owner, started = epoch
+      try {
+        const { state, revision: serverRevision } = await api('/api/data')
+        if (!current(id, started)) return
+        dirty = false; revision = serverRevision
+        persist(Object.assign(clone(DEF), state || {}), false, false)
+        set({ syncError: null })
+      } catch (e) { if (current(id, started)) { set({ syncError: 'offline' }); if (e.status === 401) get().setUser(null) } }
     },
     async pullState() {
+      if (!get().user || syncing) return
+      const id = owner, started = epoch
       try {
-        const { state } = await api('/api/data')
+        const { state, revision: serverRevision } = await api('/api/data')
+        if (!current(id, started)) return
+        if (revision !== null && serverRevision < revision) return
         const S = get().S
-        const dirty = localStorage.getItem('gym_dirty') === '1'
-        if (state && (!hasData(S) || ((state._ts || 0) >= (S._ts || 0) && !dirty))) {
+        if (dirty) {
+          // Unknown legacy revision can only be uploaded to an empty profile safely.
+          if ((revision === null && !state) || revision === serverRevision) {
+            revision = serverRevision; await get().pushState()
+          } else { cache(S); set({ syncError: 'conflict' }) }
+        } else {
+          revision = serverRevision
           const active = S.active
-          const next = Object.assign(clone(DEF), state)
+          const next = Object.assign(clone(DEF), state || {})
           if (active) next.active = active
-          persist(next, false)
-        } else if (hasData(S)) { await get().pushState() }
-      } catch (e) { /* offline — keep local */ }
+          persist(next, false, false); set({ syncError: null })
+        }
+      } catch (e) {
+        if (!current(id, started)) return
+        if (e.status === 401) get().setUser(null)
+        else set({ syncError: 'offline' })
+      }
     },
 
     async signOut() {
-      try { await get().pushState(); await api('/api/logout', { method: 'POST', body: '{}' }) } catch (e) { /* */ }
-      clearLocalSession()
+      const id = owner, started = epoch
+      try {
+        await get().pushState()
+        if (!current(id, started)) return
+        await api('/api/logout', { method: 'POST', body: '{}' })
+      } catch (e) { /* preserve offline cache */ }
+      if (current(id, started)) clearLocalSession()
     },
 
     // "Sign out everywhere": the server bumps this profile's session version, which kills every
@@ -132,9 +214,11 @@ export const useStore = create((set, get) => {
     // the sessions elsewhere are all still valid, and wiping this device's copy of the data
     // would sign the user out of the one place the bump didn't reach. Caller reports the error.
     async signOutAll() {
+      const id = owner, started = epoch
       await get().pushState()   // never throws — stores gym_dirty and moves on when offline
+      if (!current(id, started)) return
       await api('/api/logout/all', { method: 'POST', body: '{}' })
-      clearLocalSession()
+      if (current(id, started)) clearLocalSession()
     },
 
     // Demo build only: drop the seeded example profile back in (Settings → "Reset demo data").

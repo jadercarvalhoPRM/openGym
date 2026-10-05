@@ -1,0 +1,15 @@
+✔ HTTP health and unauthenticated private data (590.3315ms)
+✔ captured malformed JSON is client error and runtime stays healthy (11.8729ms)
+✔ arrays and malformed collections are rejected before persistence (13.7612ms)
+TRACE qa-A GET revision=0 -> PUT owner=qa-A base=0 revision=1 -> stale PUT 409 -> owner/cookie mismatch 409 -> GET preserved -> qa-B null
+✔ real HTTP revision CAS rejects second device and cross-profile owner (17.5542ms)
+✔ private/non-HTTPS push endpoint is refused before network (2.3181ms)
+✔ existing corrupted DB fails closed and retains bytes (580.4188ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1985.3637

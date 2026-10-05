@@ -1,0 +1,118 @@
+name: Verify and publish openGym
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the tested images to GHCR
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: opengym-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+    env:
+      COMPOSE_PROJECT_NAME: opengym-ci
+      REVISION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+            api/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Product quality gates
+        run: |
+          npm run lint
+          npm run typecheck
+          npm test
+          npm run build
+          npm run locales
+          npm audit --omit=dev --audit-level=high
+          npm audit --prefix frontend --omit=dev --audit-level=high
+          npm audit --prefix api --omit=dev --audit-level=high
+          node scripts/audit-media.mjs
+          git diff --check
+      - name: Install isolated browser test runtime
+        run: |
+          npm install --prefix /tmp/opengym-qa --no-save --no-audit --no-fund playwright
+          /tmp/opengym-qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Browser passkey, workout and sync gate
+        env:
+          QA_PLAYWRIGHT: /tmp/opengym-qa/node_modules/playwright
+        run: |
+          mkdir -p reports/ci
+          node scripts/qa-browser.mjs
+          cp reports/browser-qa.json reports/ci/browser-qa.json
+          cp reports/browser-qa.log reports/ci/browser-qa.log
+          cp reports/qa-*.png reports/ci/
+      - name: Validate deployment configuration and build tested images
+        env:
+          OPENGYM_API_IMAGE: opengym-api:local
+          OPENGYM_WEB_IMAGE: opengym-web:local
+          OPENGYM_BOOTSTRAP_AUTH: 'ci:{SHA}ci-validation-only'
+        run: |
+          docker compose config --quiet
+          node scripts/verify-stack-config.mjs
+          docker compose build
+      - name: Docker runtime gate with new isolated volume
+        run: |
+          docker compose up -d --wait --wait-timeout 120
+          node scripts/docker-smoke.mjs
+      - name: Record runtime evidence
+        if: always()
+        run: |
+          mkdir -p reports/ci
+          docker compose ps --format json > reports/ci/containers.json
+          docker compose logs --no-color --tail 120 > reports/ci/runtime.log
+      - name: Release identity
+        if: github.event_name == 'workflow_dispatch' && inputs.publish && github.repository == 'jadercarvalhoPRM/openGym'
+        id: release
+        run: |
+          echo "api=ghcr.io/jadercarvalhoprm/opengym-api:sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "web=ghcr.io/jadercarvalhoprm/opengym-web:sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+      - name: Sign into existing GitHub registry
+        if: steps.release.outcome == 'success'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish the exact tested images
+        if: steps.release.outcome == 'success'
+        env:
+          API_IMAGE: ${{ steps.release.outputs.api }}
+          WEB_IMAGE: ${{ steps.release.outputs.web }}
+        run: |
+          docker tag opengym-api:local "$API_IMAGE"
+          docker tag opengym-web:local "$WEB_IMAGE"
+          docker push "$API_IMAGE"
+          docker push "$WEB_IMAGE"
+          docker image inspect "$API_IMAGE" "$WEB_IMAGE" --format '{{json .RepoDigests}}' > reports/ci/digests.jsonl
+          printf 'Commit: %s\nAPI: %s\nWeb: %s\n' "$GITHUB_SHA" "$API_IMAGE" "$WEB_IMAGE" >> "$GITHUB_STEP_SUMMARY"
+          cat reports/ci/digests.jsonl >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload non-secret evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: opengym-ci-${{ github.sha }}
+          path: reports/ci
+          retention-days: 7
+      - name: Clean only the isolated CI stack and volume
+        if: always()
+        run: docker compose down --volumes --remove-orphans

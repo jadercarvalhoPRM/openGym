@@ -9,7 +9,10 @@
     "build:mobile": "VITE_MOBILE=1 VITE_IMG_BASE=https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@7455efae41b330c265e7cd4b78dfa848e7ce5ebd/images/ VITE_GIF_BASE=https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@7455efae41b330c265e7cd4b78dfa848e7ce5ebd/videos/ vite build && cap sync",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "eslint src scripts vite.config.js",
+    "typecheck": "tsc -p tsconfig.validation.json",
+    "locales": "node scripts/check-locales.mjs"
   },
   "license": "AGPL-3.0-or-later",
   "dependencies": {
@@ -27,7 +30,11 @@
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^7.6.8",
     "@capacitor/ios": "^7.6.8",
+    "@eslint/js": "^10.0.1",
     "@vitejs/plugin-react": "^6.0.3",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "typescript": "^7.0.2",
     "vite": "^8.1.5",
     "vitest": "^4.1.10"
   }

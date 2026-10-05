@@ -1,0 +1,104 @@
+✔ HTTP health and unauthenticated private data (7660.017ms)
+✖ captured malformed JSON is client error and runtime stays healthy (10.2556ms)
+✖ arrays and malformed collections are rejected before persistence (7.3841ms)
+✖ real HTTP revision CAS rejects second device and cross-profile owner (7.0338ms)
+✖ private/non-HTTPS push endpoint is refused before network (4.4675ms)
+✖ existing corrupted DB fails closed and retains bytes (1225.8073ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 1
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9075.2007
+
+✖ failing tests:
+
+test at server.test.js:28:1
+✖ captured malformed JSON is client error and runtime stays healthy (10.2556ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  500 !== 400
+  
+      at TestContext.<anonymous> (file:///C:/Users/jader/Desktop/PROJETOS-AI/openGym/api/server.test.js:28:134)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async Test.run (node:internal/test_runner/test:1110:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 500,
+    expected: 400,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at server.test.js:29:1
+✖ arrays and malformed collections are rejected before persistence (7.3841ms)
+  AssertionError [ERR_ASSERTION]: []
+  
+  200 !== 400
+  
+      at TestContext.<anonymous> (file:///C:/Users/jader/Desktop/PROJETOS-AI/openGym/api/server.test.js:29:249)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async Test.run (node:internal/test_runner/test:1110:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 400,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at server.test.js:30:1
+✖ real HTTP revision CAS rejects second device and cross-profile owner (7.0338ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  undefined !== 1
+  
+      at TestContext.<anonymous> (file:///C:/Users/jader/Desktop/PROJETOS-AI/openGym/api/server.test.js:31:146)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async Test.run (node:internal/test_runner/test:1110:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at server.test.js:38:1
+✖ private/non-HTTPS push endpoint is refused before network (4.4675ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  200 !== 400
+  
+      at TestContext.<anonymous> (file:///C:/Users/jader/Desktop/PROJETOS-AI/openGym/api/server.test.js:38:232)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async Test.run (node:internal/test_runner/test:1110:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 400,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at server.test.js:39:1
+✖ existing corrupted DB fails closed and retains bytes (1225.8073ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to:
+  
+  'still-running'
+      at TestContext.<anonymous> (file:///C:/Users/jader/Desktop/PROJETOS-AI/openGym/api/server.test.js:43:10)
+      at async Test.run (node:internal/test_runner/test:1110:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'still-running',
+    expected: 'still-running',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,2 @@
+# Preserve raw command output as evidence; code still uses normal whitespace checks.
+reports/*.log -whitespace

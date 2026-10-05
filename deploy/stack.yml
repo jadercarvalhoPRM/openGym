@@ -1,0 +1,77 @@
+version: '3.8'
+services:
+  api:
+    image: ${OPENGYM_API_IMAGE}
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      DATA_DIR: /data
+      RP_ID: comespecialista.online
+      ORIGIN: https://comespecialista.online
+      RP_NAME: openGym
+      ADMIN_UIDS: ${ADMIN_UIDS:-}
+      INVITE_ONLY: ${INVITE_ONLY:-1}
+    volumes:
+      - data:/data
+    networks:
+      - private
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.hostname == meuservidor1]
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+  web:
+    image: ${OPENGYM_WEB_IMAGE}
+    networks:
+      - private
+      - matriz
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/api/health']
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.hostname == meuservidor1]
+      update_config:
+        order: stop-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 128M
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=matriz
+        - traefik.docker.network=matriz
+        - traefik.http.routers.opengym.rule=Host(`comespecialista.online`)
+        - traefik.http.routers.opengym.entrypoints=websecure
+        - traefik.http.routers.opengym.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.opengym.service=opengym
+        # Required temporary protection during the human passkey/admin bootstrap.
+        # Remove these two labels only after ADMIN_UIDS + INVITE_ONLY=1 are verified.
+        - traefik.http.routers.opengym.middlewares=opengym-bootstrap
+        - traefik.http.middlewares.opengym-bootstrap.basicauth.users=${OPENGYM_BOOTSTRAP_AUTH}
+        - traefik.http.services.opengym.loadbalancer.server.port=80
+        - traefik.http.services.opengym.loadbalancer.passHostHeader=true
+networks:
+  private:
+    driver: overlay
+  matriz:
+    external: true
+volumes:
+  data:
+    name: opengym_data_v1

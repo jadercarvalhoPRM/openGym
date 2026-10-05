@@ -1,0 +1,15 @@
+{
+  "name": "opengym-selfhosted",
+  "version": "1.2.4",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "postinstall": "npm ci --prefix frontend --no-audit --no-fund && npm ci --prefix api --no-audit --no-fund",
+    "lint": "npm --prefix frontend run lint && npm --prefix api run lint",
+    "typecheck": "npm --prefix frontend run typecheck",
+    "test": "npm --prefix frontend test && npm --prefix api test",
+    "build": "npm --prefix frontend run build",
+    "locales": "npm --prefix frontend run locales"
+  }
+}

@@ -9,6 +9,7 @@ import {
   generateAuthenticationOptions, verifyAuthenticationResponse
 } from '@simplewebauthn/server';
 import webpush from 'web-push';
+import { validState, validPushEndpoint } from './validation.js';
 
 const PORT = +(process.env.PORT || 3000);
 const DATA = process.env.DATA_DIR || '/data';
@@ -37,7 +38,14 @@ const SECRET = fs.readFileSync(secretFile, 'utf8').trim();
 
 const dbFile = path.join(DATA, 'db.json');
 let db = { users: [], creds: [], subs: [], invites: [] };
-try { db = JSON.parse(fs.readFileSync(dbFile, 'utf8')); } catch {}
+if (fs.existsSync(dbFile)) {
+  try {
+    db = JSON.parse(fs.readFileSync(dbFile, 'utf8'));
+    if (!db || !Array.isArray(db.users) || !Array.isArray(db.creds) ||
+      (db.subs !== undefined && !Array.isArray(db.subs)) || (db.invites !== undefined && !Array.isArray(db.invites))) throw new Error();
+    if (![...db.users, ...db.creds, ...(db.subs || []), ...(db.invites || [])].every(v => v && typeof v === 'object' && !Array.isArray(v))) throw new Error();
+  } catch { throw new Error('Invalid existing db.json: restore a verified backup; file was not overwritten'); }
+}
 db.subs = db.subs || [];
 db.invites = db.invites || [];
 const isAdmin = user => !!user && (user.admin === true || ADMIN_UIDS.includes(user.id));
@@ -49,8 +57,15 @@ function atomicWrite(file, content) {
 }
 const stateFile = uid => path.join(DATA, 'state-' + uid.replace(/[^a-zA-Z0-9_-]/g, '') + '.json');
 function readState(uid) {
-  try { return JSON.parse(fs.readFileSync(stateFile(uid), 'utf8')); } catch { return null; }
+  const file = stateFile(uid);
+  if (!fs.existsSync(file)) return null;
+  try {
+    const state = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (!validState(state)) throw new Error();
+    return state;
+  } catch { throw new Error('Invalid existing profile state: restore verified backup; file was not overwritten'); }
 }
+for (const user of db.users) readState(user.id); // fail closed before accepting traffic
 
 /* ---------- push notifications (Web Push / VAPID) ---------- */
 const vapidFile = path.join(DATA, 'vapid.json');
@@ -61,7 +76,8 @@ const VAPID_SUBJECT = process.env.VAPID_SUBJECT || (SECURE ? ORIGIN : 'mailto:ad
 webpush.setVapidDetails(VAPID_SUBJECT, vapid.publicKey, vapid.privateKey);
 
 async function sendPush(userId, payload) {
-  const subs = db.subs.filter(s => s.userId === userId);
+  if (db.users.find(u => u.id === userId)?.disabled) return;
+  const subs = db.subs.filter(s => s.userId === userId && validPushEndpoint(s.endpoint));
   if (!subs.length) return;
   const body = JSON.stringify(payload);
   let dirty = false;
@@ -123,7 +139,7 @@ setInterval(() => {
   for (const user of db.users) {
     if (!db.subs.some(s => s.userId === user.id)) continue;
     const S = readState(user.id);
-    if (!S?.reminder?.on) continue;
+    if (user.disabled || !S?.reminder?.on) continue;
     const now = userNow(S.reminder.tz || 'UTC');
     if (!now || S.reminder.time !== now.hhmm) continue;
     if (user.lastReminder === now.date) continue;
@@ -223,15 +239,20 @@ function json(res, code, obj, extraHeaders) {
 }
 function readBody(req) {
   return new Promise((resolve, reject) => {
-    let size = 0; const chunks = [];
+    let size = 0; const chunks = []; let tooLarge = false;
     req.on('data', d => {
       size += d.length;
-      if (size > MAX_BODY) { reject(new Error('body too large')); req.destroy(); return; }
+      if (size > MAX_BODY) { tooLarge = true; chunks.length = 0; return; }
       chunks.push(d);
     });
     req.on('end', () => {
-      try { resolve(chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {}); }
-      catch { reject(new Error('bad json')); }
+      if (tooLarge) { const e = new Error('body too large'); e.status = 413; reject(e); return; }
+      try {
+        const body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {};
+        if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error();
+        resolve(body);
+      }
+      catch { const e = new Error('bad json'); e.status = 400; reject(e); }
     });
     req.on('error', reject);
   });
@@ -375,20 +396,26 @@ const routes = {
   'GET /api/data': async (req, res) => {
     const user = readSession(req);
     if (!user) return json(res, 401, { error: 'not signed in' });
-    try {
-      const state = JSON.parse(fs.readFileSync(stateFile(user.id), 'utf8'));
-      json(res, 200, { state });
-    } catch { json(res, 200, { state: null }); }
+    const stored = readState(user.id);
+    const revision = stored?._revision || 0;
+    const state = stored ? { ...stored } : null;
+    if (state) delete state._revision;
+    json(res, 200, { state, revision });
   },
 
   'PUT /api/data': async (req, res) => {
     const user = readSession(req);
     if (!user) return json(res, 401, { error: 'not signed in' });
     const body = await readBody(req);
-    if (!body.state || typeof body.state !== 'object') return json(res, 400, { error: 'state required' });
+    if (!validState(body.state)) return json(res, 400, { error: 'invalid state' });
+    if (body.ownerId !== user.id) return json(res, 409, { error: 'profile changed' });
+    if (!Number.isSafeInteger(body.baseRevision) || body.baseRevision < 0) return json(res, 400, { error: 'baseRevision required' });
+    const revision = readState(user.id)?._revision || 0;
+    if (body.baseRevision !== revision) return json(res, 409, { error: 'state changed on another device', revision });
     delete body.state.active;              // in-progress workouts stay device-local
+    body.state._revision = revision + 1;
     atomicWrite(stateFile(user.id), JSON.stringify(body.state));
-    json(res, 200, { ok: true, ts: body.state._ts || null });
+    json(res, 200, { ok: true, ts: body.state._ts || null, revision: revision + 1 });
   },
 
   'GET /api/push/public-key': async (req, res) => json(res, 200, { key: vapid.publicKey }),
@@ -398,7 +425,7 @@ const routes = {
     if (!user) return json(res, 401, { error: 'not signed in' });
     const body = await readBody(req);
     const sub = body.subscription;
-    if (!sub?.endpoint || !sub?.keys?.p256dh || !sub?.keys?.auth) return json(res, 400, { error: 'invalid subscription' });
+    if (!validPushEndpoint(sub?.endpoint) || typeof sub?.keys?.p256dh !== 'string' || !sub.keys.p256dh || typeof sub?.keys?.auth !== 'string' || !sub.keys.auth) return json(res, 400, { error: 'invalid subscription' });
     db.subs = db.subs.filter(s => s.endpoint !== sub.endpoint);
     db.subs.push({ userId: user.id, endpoint: sub.endpoint, keys: sub.keys, created: new Date().toISOString() });
     saveDb();
@@ -548,7 +575,7 @@ http.createServer(async (req, res) => {
   if (!handler) return json(res, 404, { error: 'not found' });
   try { await handler(req, res); }
   catch (e) {
-    console.error(key, e);
-    if (!res.headersSent) json(res, 500, { error: 'server error' });
+    console.error(key, e.status || 500, e.message);
+    if (!res.headersSent) json(res, e.status || 500, { error: e.status ? e.message : 'server error' });
   }
 }).listen(PORT, () => console.log(`gym-api on :${PORT} (rpID=${RP_ID}, origin=${ORIGIN})`));

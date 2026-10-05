@@ -1,0 +1,92 @@
+
+> opengym-frontend@1.2.4 test
+> vitest run --reporter=verbose src/store/useStore.test.js
+
+
+ RUN  v4.1.10 C:/Users/jader/Desktop/PROJETOS-AI/openGym/frontend
+
+ × src/store/useStore.test.js > profile ownership > 401 clears visible A data and preserves its offline copy separately 222ms
+   → expected [ { id: 'qa-A', …(2) } ] to deeply equal []
+ × src/store/useStore.test.js > profile ownership > switch A to empty B never uploads A or runs its pending timer 5ms
+   → expected [ { id: 'qa-A', …(2) } ] to deeply equal []
+ ✓ src/store/useStore.test.js > profile ownership > guest migration is explicit only when creating a new profile 2ms
+ × src/store/useStore.test.js > profile ownership > pull preserves server timestamp and clean unchanged state is never pushed 2ms
+   → expected 1234 to be 77 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/store/useStore.test.js > profile ownership > 401 clears visible A data and preserves its offline copy separately
+AssertionError: expected [ { id: 'qa-A', …(2) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "ex": [],
++     "id": "qa-A",
++     "name": "QA A routine",
++   },
++ ]
+
+ ❯ src/store/useStore.test.js:32:44
+     30|     await useStore.getState().boot()
+     31|     expect(useStore.getState().user).toBeNull()
+     32|     expect(useStore.getState().S.routines).toEqual([])
+       |                                            ^
+     33|     expect(JSON.parse(localStorage.getItem('gym_profile_regression-A')…
+     34|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/store/useStore.test.js > profile ownership > switch A to empty B never uploads A or runs its pending timer
+AssertionError: expected [ { id: 'qa-A', …(2) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "ex": [],
++     "id": "qa-A",
++     "name": "QA A routine",
++   },
++ ]
+
+ ❯ src/store/useStore.test.js:42:44
+     40|     await useStore.getState().pullState()
+     41|     await vi.advanceTimersByTimeAsync(1600)
+     42|     expect(useStore.getState().S.routines).toEqual([])
+       |                                            ^
+     43|     expect(fetch.mock.calls.filter(([, o]) => o?.method === 'PUT')).to…
+     44|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/store/useStore.test.js > profile ownership > pull preserves server timestamp and clean unchanged state is never pushed
+AssertionError: expected 1234 to be 77 // Object.is equality
+
+- Expected
++ Received
+
+- 77
++ 1234
+
+ ❯ src/store/useStore.test.js:57:39
+     55|     vi.stubGlobal('fetch', fetch)
+     56|     await useStore.getState().pullState()
+     57|     expect(useStore.getState().S._ts).toBe(77)
+       |                                       ^
+     58|     await useStore.getState().pushState()
+     59|     expect(fetch.mock.calls.filter(([, o]) => o?.method === 'PUT')).to…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 1 passed (4)
+   Start at  18:22:02
+   Duration  1.16s (transform 170ms, setup 0ms, import 76ms, tests 232ms, environment 0ms)
+

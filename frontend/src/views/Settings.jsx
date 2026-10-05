@@ -18,6 +18,7 @@ export default function Settings() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
+  const syncError = useStore(s => s.syncError)
   const { update, replaceState, setUser, pullState, pushState, signOut, signOutAll, resetDemo } = useStore()
   const toast = useUI(s => s.toast)
   const fileRef = useRef(null)
@@ -86,8 +87,14 @@ export default function Settings() {
           onClick={() => window.open(REPO, '_blank', 'noopener')} />
       </> : user ? <>
         <Row icon="personCircle" iconTint="var(--grey)" title={user.name} subtitle={t('Signed in with passkey — data syncs to this profile.')} />
+        {syncError && <Row icon="shield" iconTint="var(--red)"
+          title={t(syncError === 'conflict' ? 'Sync conflict — export your local backup' : 'Offline — changes saved on this device')}
+          subtitle={t('Your local data is preserved. Export it before restoring the server version.')} />}
+        {syncError === 'conflict' && <Row icon="reset" title={t('Restore server version')} accessory="chevron"
+          onClick={() => confirmSheet({ title: t('Restore server version'), message: t('Export your local backup first. This replaces the pending local copy with the server version.'), confirmText: t('Restore'), danger: true,
+            onConfirm: () => useStore.getState().restoreServerState() })} />}
         {user.admin && <Row icon="wrench" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
-        <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={() => confirmSheet({ title: t('Sign out?'), message: t('Your data is synced to your profile first, then cleared from this device.'), confirmText: t('Sign out'), danger: true, onConfirm: () => { signOut(); nav('/home') } })} />
+        <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={() => confirmSheet({ title: t('Sign out?'), message: t('Sync is attempted first. Unsynced changes stay on this device for this profile until you sign in again.'), confirmText: t('Sign out'), danger: true, onConfirm: () => { signOut(); nav('/home') } })} />
         <Row icon="shield" iconTint="var(--red)" title={t('Sign out everywhere')} subtitle={t('Ends this profile’s sessions on all your devices.')} danger onClick={signOutEverywhere} />
       </> : webauthnOK() ? <>
         <Row icon="sparkles" iconTint="var(--acc)" title={t('Create passkey profile')} subtitle={t('Keeps your data safe and separate per person.')} accessory="chevron" onClick={registerHere} />
@@ -340,7 +347,7 @@ function RegisterInline({ close, setUser, pushState, pullState, toast }) {
     if (!n) { toast(t('Enter a name')); return }
     if (inviteOnly && !code.trim()) { toast(t('An invite code is required')); return }
     try {
-      const u = await passkeyRegister(n, code.trim()); setUser(u); close()
+      const u = await passkeyRegister(n, code.trim()); setUser(u, { migrateGuest: true }); close()
       if (hasData(useStore.getState().S)) { await pushState(); toast(t('Profile created — data moved into it')) }
       else { await pullState(); toast(t('Welcome, {0}', u.name)) }
     } catch (e) { if (e.name !== 'NotAllowedError' && e.name !== 'AbortError') toast(e.message || t('Registration failed')) }
@@ -348,6 +355,7 @@ function RegisterInline({ close, setUser, pushState, pullState, toast }) {
   return <>
     <h3>{t('Create your profile')}</h3>
     <div className="muted small" style={{ marginBottom: 14 }}>{t('Pick a name, then confirm with your device.')}</div>
+    {hasData(useStore.getState().S) && <p className="small muted">{t('Creating a new profile moves your guest data into it. Signing into an existing profile keeps guest data separate.')}</p>}
     <TextField ref={nameRef} placeholder={t('Your name')} maxLength={40} />
     {inviteOnly && <>
       <div style={{ height: 10 }} />

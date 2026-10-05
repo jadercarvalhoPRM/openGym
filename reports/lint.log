@@ -1,0 +1,12 @@
+
+> opengym-selfhosted@1.2.4 lint
+> npm --prefix frontend run lint && npm --prefix api run lint
+
+
+> opengym-frontend@1.2.4 lint
+> eslint src scripts vite.config.js
+
+
+> gym-api@1.2.4 lint
+> node --check server.js && node --check validation.js
+

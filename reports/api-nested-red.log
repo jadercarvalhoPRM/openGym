@@ -1,0 +1,57 @@
+
+> gym-api@1.2.4 test
+> node --test server.test.js
+
+✔ HTTP health and unauthenticated private data (673.5451ms)
+✔ captured malformed JSON is client error and runtime stays healthy (8.8796ms)
+✔ oversized body returns 413 and JSON primitives return 400 (38.3847ms)
+✖ arrays and malformed collections are rejected before persistence (18.319ms)
+✖ real HTTP revision CAS rejects second device and cross-profile owner (5.5905ms)
+✔ private/non-HTTPS push endpoint is refused before network (2.689ms)
+✔ existing corrupted DB fails closed and retains bytes (615.5327ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 5
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2103.3325
+
+✖ failing tests:
+
+test at server.test.js:33:1
+✖ arrays and malformed collections are rejected before persistence (18.319ms)
+  AssertionError [ERR_ASSERTION]: {"workouts":[{"entries":{}}]}
+  
+  200 !== 400
+  
+      at TestContext.<anonymous> (file:///C:/Users/jader/Desktop/PROJETOS-AI/openGym/api/server.test.js:33:334)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async Test.run (node:internal/test_runner/test:1110:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 400,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at server.test.js:34:1
+✖ real HTTP revision CAS rejects second device and cross-profile owner (5.5905ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  409 !== 200
+  
+      at TestContext.<anonymous> (file:///C:/Users/jader/Desktop/PROJETOS-AI/openGym/api/server.test.js:35:82)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async Test.run (node:internal/test_runner/test:1110:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 409,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

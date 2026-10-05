@@ -1,0 +1,37 @@
+
+> opengym-selfhosted@1.2.4 test
+> npm --prefix frontend test && npm --prefix api test
+
+
+> opengym-frontend@1.2.4 test
+> vitest run
+
+
+ RUN  v4.1.10 C:/Users/jader/Desktop/PROJETOS-AI/openGym/frontend
+
+
+ Test Files  8 passed (8)
+      Tests  199 passed (199)
+   Start at  18:39:17
+   Duration  1.25s (transform 3.62s, setup 0ms, import 4.18s, tests 1.21s, environment 1ms)
+
+
+> gym-api@1.2.4 test
+> node --test server.test.js
+
+✔ HTTP health and unauthenticated private data (565.6297ms)
+✔ captured malformed JSON is client error and runtime stays healthy (9.0375ms)
+✔ oversized body returns 413 and JSON primitives return 400 (32.1694ms)
+✔ arrays and malformed collections are rejected before persistence (14.6296ms)
+TRACE qa-A GET revision=0 -> PUT owner=qa-A base=0 revision=1 -> stale PUT 409 -> owner/cookie mismatch 409 -> GET preserved -> qa-B null
+✔ real HTTP revision CAS rejects second device and cross-profile owner (15.2326ms)
+✔ private/non-HTTPS push endpoint is refused before network (2.3373ms)
+✔ existing corrupted DB fails closed and retains bytes (508.7212ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1284.5748

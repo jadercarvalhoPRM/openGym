@@ -1,0 +1,20 @@
+
+> gym-api@1.2.4 test
+> node --test server.test.js
+
+✔ HTTP health and unauthenticated private data (575.1872ms)
+✔ captured malformed JSON is client error and runtime stays healthy (9.2966ms)
+✔ oversized body returns 413 and JSON primitives return 400 (36.7651ms)
+✔ arrays and malformed collections are rejected before persistence (16.1928ms)
+TRACE qa-A GET revision=0 -> PUT owner=qa-A base=0 revision=1 -> stale PUT 409 -> owner/cookie mismatch 409 -> GET preserved -> qa-B null
+✔ real HTTP revision CAS rejects second device and cross-profile owner (15.0826ms)
+✔ private/non-HTTPS push endpoint is refused before network (1.9848ms)
+✔ existing corrupted DB fails closed and retains bytes (582.1316ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1382.5912

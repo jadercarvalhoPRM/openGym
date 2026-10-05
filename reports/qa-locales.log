@@ -1,0 +1,9 @@
+
+> opengym-selfhosted@1.2.4 locales
+> npm --prefix frontend run locales
+
+
+> opengym-frontend@1.2.4 locales
+> node scripts/check-locales.mjs
+
+11 locales, 635 keys each — in sync.

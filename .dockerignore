@@ -1,0 +1,17 @@
+.git
+.github
+**/node_modules
+**/dist
+**/coverage
+data
+.env
+.env.*
+!.env.example
+backups
+reports
+docs
+frontend/android
+frontend/ios
+website
+assets
+*.log

@@ -1,0 +1,34 @@
+gym-api on :3000 (rpID=localhost, origin=http://localhost:5173)
+
+
+  VITE v8.1.5  ready in 302 ms
+
+
+  ➜  Local:   http://localhost:5173/
+
+PASS UI registration + WebAuthn verification — profile=7vbeMrFnt7k6xy7C; virtual authenticator, localhost secure-context exception
+PASS UI routine creation/rename opens exercise picker
+PASS UI routine/exercise, weekly plan and weight create/save/read
+PASS UI weight edit/read
+PASS UI workout set/finish + authenticated persisted history
+PASS Reload retains routine/weight/workout
+PASS UI logout/login WebAuthn retains profile history
+PASS Second UI passkey profile isolated; admin unauthorized 403
+PASS Authenticated cross-owner PUT rejected without contaminating B
+PASS Real authenticated CAS stale snapshot returns 409 and preserves latest
+PUT /api/data 400 bad json
+
+PASS Malformed JSON/array state HTTP 400; runtime still healthy
+PASS Second browser context genuine WebAuthn login + server state sync
+PASS Guest browser-local plan survives reload and sends no private state
+gym-api on :3000 (rpID=localhost, origin=http://localhost:5173)
+
+PASS API restart preserves real sessions/state; owner admin + invite create/revoke/invalid
+PASS Isolated runtime restart preserves workout and passkey sessions
+PASS UI body-weight delete persisted
+PASS UI routine delete persisted
+PASS JPG/GIF actual bytes served through frontend proxy
+gym-api on :3000 (rpID=localhost, origin=http://localhost:5173)
+
+PASS Private isolated backup/restore retains signed session and data
+PASS Browser page errors — none

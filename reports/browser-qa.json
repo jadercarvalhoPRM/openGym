@@ -1,0 +1,107 @@
+{
+  "at": "2026-10-05T21:32:57.809Z",
+  "origin": "http://localhost:5173",
+  "authentication": "CDP virtual authenticator; no physical biometrics",
+  "checks": [
+    {
+      "name": "UI registration + WebAuthn verification",
+      "status": "PASS",
+      "details": "profile=7vbeMrFnt7k6xy7C; virtual authenticator, localhost secure-context exception"
+    },
+    {
+      "name": "UI routine creation/rename opens exercise picker",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "UI routine/exercise, weekly plan and weight create/save/read",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "UI weight edit/read",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "UI workout set/finish + authenticated persisted history",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Reload retains routine/weight/workout",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "UI logout/login WebAuthn retains profile history",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Second UI passkey profile isolated; admin unauthorized 403",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Authenticated cross-owner PUT rejected without contaminating B",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Real authenticated CAS stale snapshot returns 409 and preserves latest",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Malformed JSON/array state HTTP 400; runtime still healthy",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Second browser context genuine WebAuthn login + server state sync",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Guest browser-local plan survives reload and sends no private state",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "API restart preserves real sessions/state; owner admin + invite create/revoke/invalid",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Isolated runtime restart preserves workout and passkey sessions",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "UI body-weight delete persisted",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "UI routine delete persisted",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "JPG/GIF actual bytes served through frontend proxy",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Private isolated backup/restore retains signed session and data",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Browser page errors",
+      "status": "PASS",
+      "details": "none"
+    }
+  ]
+}

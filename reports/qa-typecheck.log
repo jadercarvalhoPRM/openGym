@@ -1,0 +1,8 @@
+
+> opengym-selfhosted@1.2.4 typecheck
+> npm --prefix frontend run typecheck
+
+
+> opengym-frontend@1.2.4 typecheck
+> tsc -p tsconfig.validation.json
+

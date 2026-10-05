@@ -22,7 +22,7 @@ function RegisterSheet({ close }) {
     if (inviteOnly && !code.trim()) { useUI.getState().toast(t('An invite code is required')); return }
     try {
       const u = await passkeyRegister(n, code.trim())
-      setUser(u); close()
+      setUser(u, { migrateGuest: true }); close()
       if (hasData(useStore.getState().S)) { await pushState(); useUI.getState().toast(t('Profile created — data from this device moved into it')) }
       else { await pullState(); useUI.getState().toast(t('Welcome, {0}', u.name)) }
     } catch (e) { if (e.name !== 'NotAllowedError' && e.name !== 'AbortError') useUI.getState().toast(e.message || t('Registration failed')) }
@@ -30,6 +30,7 @@ function RegisterSheet({ close }) {
   return <>
     <h3>{t('Create your profile')}</h3>
     <div className="muted small" style={{ marginBottom: 14 }}>{t('Pick a name, then confirm with {0}. The passkey is saved in your device — no password needed.', BIO)}</div>
+    {hasData(useStore.getState().S) && <p className="small muted">{t('Creating a new profile moves your guest data into it. Signing into an existing profile keeps guest data separate.')}</p>}
     <input ref={ref} className="input" placeholder={t('Your name')} maxLength={40} value={name} onChange={e => setName(e.target.value)} />
     {inviteOnly && <>
       <div style={{ height: 10 }} />
