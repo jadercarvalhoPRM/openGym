@@ -18,7 +18,7 @@ const resolved = JSON.parse(execFileSync('docker', ['compose', '-f', 'deploy/sta
 }))
 // Compose deliberately re-escapes dollars in its reusable JSON output. This
 // serialization is not the label ultimately stored in the Swarm service.
-assert.equal(resolved.services.web.deploy.labels['traefik.http.middlewares.opengym-bootstrap.basicauth.users'], sample.replaceAll('$', '$$'))
+assert.equal(resolved.services.web.deploy.labels['traefik.http.middlewares.opengym-bootstrap.basicauth.users'], sample.replaceAll('$', () => '$$'))
 assert.equal(resolved.services.web.deploy.labels['traefik.http.routers.opengym.middlewares'], 'opengym-bootstrap')
 assert.equal(resolved.services.api.environment.RP_ID, 'comespecialista.online')
 assert.equal(resolved.services.api.environment.ORIGIN, 'https://comespecialista.online')
