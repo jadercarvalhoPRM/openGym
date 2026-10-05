@@ -1,12 +1,12 @@
 gym-api on :3000 (rpID=localhost, origin=http://localhost:5173)
 
 
-  VITE v8.1.5  ready in 302 ms
+  VITE v8.1.5  ready in 1069 ms
 
 
   ➜  Local:   http://localhost:5173/
 
-PASS UI registration + WebAuthn verification — profile=7vbeMrFnt7k6xy7C; virtual authenticator, localhost secure-context exception
+PASS UI registration + WebAuthn verification — profile=7ndcSRCJuEDetuXa; virtual authenticator, localhost secure-context exception
 PASS UI routine creation/rename opens exercise picker
 PASS UI routine/exercise, weekly plan and weight create/save/read
 PASS UI weight edit/read
@@ -31,4 +31,5 @@ PASS JPG/GIF actual bytes served through frontend proxy
 gym-api on :3000 (rpID=localhost, origin=http://localhost:5173)
 
 PASS Private isolated backup/restore retains signed session and data
+PASS Selfhost Settings footer links corresponding fork source
 PASS Browser page errors — none

@@ -48,6 +48,8 @@ Atualização: o usuário exigiu CodeRabbit; DevOps prepara versão Windows nati
 
 Link source da interface agora aponta jadercarvalhoPRM/openGym; licença/NOTICE preservadas. Mudanças ainda precisam ser publicadas no fork para cumprir a oferta de fonte correspondente do serviço.
 
+Revisão A10 pela QA identificou uma referência independente no footer Settings: href literal ainda apontava upstream. Patch mínimo substituiu o literal por `href={REPO}`; self-host, demo e mobile passam a usar a mesma referência do fork. API, dados e volumes não mudaram. QA acrescenta asserção DOM de Settings no runner; deploy da imagem web corrigida ainda é gate DevOps. Evidência build/lint focal: reports/source-link-build.log e source-link-lint.log.
+
 ## Self-audit e gates restantes
 
 - user shapes register/login/me mantidos; GET /data {state,revision}, PUT {ok,ts,revision}; diferença por método intencional. Todas mutações da UI usam o mesmo PUT snapshot.

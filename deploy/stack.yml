@@ -6,8 +6,8 @@ services:
       NODE_ENV: production
       PORT: '3000'
       DATA_DIR: /data
-      RP_ID: comespecialista.online
-      ORIGIN: https://comespecialista.online
+      RP_ID: app.comespecialista.online
+      ORIGIN: https://app.comespecialista.online
       RP_NAME: openGym
       ADMIN_UIDS: ${ADMIN_UIDS:-}
       INVITE_ONLY: ${INVITE_ONLY:-1}
@@ -57,7 +57,7 @@ services:
         - traefik.enable=true
         - traefik.swarm.network=matriz
         - traefik.docker.network=matriz
-        - traefik.http.routers.opengym.rule=Host(`comespecialista.online`)
+        - traefik.http.routers.opengym.rule=Host(`app.comespecialista.online`)
         - traefik.http.routers.opengym.entrypoints=websecure
         - traefik.http.routers.opengym.tls.certresolver=letsencryptresolver
         - traefik.http.routers.opengym.service=opengym
@@ -74,4 +74,4 @@ networks:
     external: true
 volumes:
   data:
-    name: opengym_data_v1
+    name: opengym_data_v1-meuservidor1

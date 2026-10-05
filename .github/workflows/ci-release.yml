@@ -9,6 +9,10 @@ on:
         description: Publish the tested images to GHCR
         type: boolean
         default: false
+      web_only:
+        description: Publish only the web image; preserve the deployed API release
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -74,6 +78,7 @@ jobs:
         run: |
           docker compose up -d --wait --wait-timeout 120
           node scripts/docker-smoke.mjs
+          node scripts/docker-bootstrap-smoke.mjs
       - name: Record runtime evidence
         if: always()
         run: |
@@ -98,13 +103,17 @@ jobs:
         env:
           API_IMAGE: ${{ steps.release.outputs.api }}
           WEB_IMAGE: ${{ steps.release.outputs.web }}
+          WEB_ONLY: ${{ inputs.web_only }}
         run: |
-          docker tag opengym-api:local "$API_IMAGE"
           docker tag opengym-web:local "$WEB_IMAGE"
-          docker push "$API_IMAGE"
           docker push "$WEB_IMAGE"
-          docker image inspect "$API_IMAGE" "$WEB_IMAGE" --format '{{json .RepoDigests}}' > reports/ci/digests.jsonl
-          printf 'Commit: %s\nAPI: %s\nWeb: %s\n' "$GITHUB_SHA" "$API_IMAGE" "$WEB_IMAGE" >> "$GITHUB_STEP_SUMMARY"
+          docker image inspect "$WEB_IMAGE" --format '{{json .RepoDigests}}' > reports/ci/digests.jsonl
+          if [ "$WEB_ONLY" != true ]; then
+            docker tag opengym-api:local "$API_IMAGE"
+            docker push "$API_IMAGE"
+            docker image inspect "$API_IMAGE" --format '{{json .RepoDigests}}' >> reports/ci/digests.jsonl
+          fi
+          printf 'Commit: %s\nWeb: %s\nWeb-only: %s\n' "$GITHUB_SHA" "$WEB_IMAGE" "$WEB_ONLY" >> "$GITHUB_STEP_SUMMARY"
           cat reports/ci/digests.jsonl >> "$GITHUB_STEP_SUMMARY"
       - name: Upload non-secret evidence
         if: always()

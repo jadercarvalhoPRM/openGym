@@ -18,7 +18,8 @@ services:
     volumes:
       - opengym_data:/data
     networks:
-      - private
+      private:
+        aliases: [opengym_api]
   web:
     image: ${OPENGYM_WEB_IMAGE:-opengym-web:local}
     build:

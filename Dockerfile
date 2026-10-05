@@ -29,8 +29,13 @@ LABEL org.opencontainers.image.source="https://github.com/jadercarvalhoPRM/openG
 COPY web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY web/security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY web/api-proxy.conf /etc/nginx/snippets/api-proxy.conf
+COPY deploy/web-start.sh /usr/local/bin/opengym-web-start.sh
+COPY web/nginx.conf /opt/opengym/nginx.conf
+COPY web/api-proxy.conf /opt/opengym/api-proxy.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY --from=media /media/img /usr/share/nginx/html/img
 COPY --from=media /media/gif /usr/share/nginx/html/gif
 COPY --from=media /media/manifest.sha256 /usr/share/nginx/html/media-manifest.sha256
 EXPOSE 80
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/opengym-web-start.sh"]
+CMD ["nginx", "-g", "daemon off;"]
